@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Projeto Unidade 2 - Sistema Escolar</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    button { cursor: pointer; padding: 8px 12px; margin-top: 5px; }
+    input, select { margin: 5px 0; padding: 6px; }
+    .aluno-item { margin: 8px 0; background: #f4f4f4; padding: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>Gerenciador Escolar</h1>
+
+  <!-- 1. CADASTRO DE TURMA -->
+  <div class="card">
+    <h2>1. Turma</h2>
+    <input type="text" id="curso" placeholder="Nome do Curso">
+    <input type="text" id="prof" placeholder="Nome do Professor">
+    <button onclick="criarTurma()">Criar Turma</button>
+    <p id="statusTurma"></p>
+  </div>
+
+  <!-- 2. CADASTRO DE ALUNO -->
+  <div class="card">
+    <h2>2. Aluno</h2>
+    <label for="selectTurma"><strong>Selecione a Turma:</strong></label><br>
+    <select id="selectTurma">
+      <option value="">Crie uma turma primeiro</option>
+    </select>
+    <br><br>
+    <input type="text" id="nomeAluno" placeholder="Nome do Aluno">
+    <input type="text" id="matAluno" placeholder="Matrícula">
+    <input type="number" id="n1" placeholder="Nota 1" step="0.1">
+    <input type="number" id="n2" placeholder="Nota 2" step="0.1">
+    <input type="number" id="n3" placeholder="Nota 3" step="0.1">
+    <br>
+    <button onclick="cadastrarAluno()">Cadastrar Aluno</button>
+  </div>
+
+  <!-- 3. LISTAGEM -->
+  <div class="card">
+    <h2>Lista de Alunos e Turmas</h2>
+    <div id="exibicao"></div>
+  </div>
+
+  <script>
+    // --- CLASSE ALUNO ---
+    class Aluno {
+      #nota1; #nota2; #nota3;
+
+      constructor(nome, matricula, nota1 = 0, nota2 = 0, nota3 = 0) {
+        this.nome = nome;
+        this.matricula = matricula;
+        this.#nota1 = Number(nota1);
+        this.#nota2 = Number(nota2);
+        this.#nota3 = Number(nota3);
+      }
+
+      // --- notas do Aluno privadas! ---
+      get nota1() { return this.#nota1; }
+      set nota1(val) { this.#nota1 = Number(val); }
+
+      get nota2() { return this.#nota2; }
+      set nota2(val) { this.#nota2 = Number(val); }
+
+      get nota3() { return this.#nota3; }
+      set nota3(val) { this.#nota3 = Number(val); }
+
+      calcularMedia() {
+        return (this.#nota1 + this.#nota2 + this.#nota3) / 3;
+      }
+
+      obterSituacao() {
+        const media = this.calcularMedia();
+        if (media >= 7.0) return "Aprovado";
+        if (media >= 5.0) return "Recuperação";
+        return "Reprovado";
+      }
+    }
+
+    // --- CLASSE TURMA ---
+    class Turma {
+      constructor(nomeCurso, professor) {
+        this.nomeCurso = nomeCurso;
+        this.professor = professor;
+        this.alunos = [];
+      }
+
+      adicionarAluno(aluno) {
+        this.alunos.push(aluno);
+      }
+    }
+
+    // --- GERENCIADOR DO SISTEMA ---
+    class SistemaEscolar {
+      constructor() {
+        this.turmas = [];
+      }
+
+      criarTurma(nomeCurso, professor) {
+        const novaTurma = new Turma(nomeCurso, professor);
+        this.turmas.push(novaTurma);
+        return novaTurma;
+      }
+
+      adicionarAlunoNaTurma(indexTurma, aluno) {
+        if (this.turmas.length === 0 || indexTurma < 0 || indexTurma >= this.turmas.length) {
+          throw new Error("Não é possível cadastrar um Aluno antes de ter uma Turma.");
+        }
+        this.turmas[indexTurma].adicionarAluno(aluno);
+      }
+    }
+
+    const sistema = new SistemaEscolar();
+
+    function criarTurma() {
+      const curso = document.getElementById("curso").value;
+      const prof = document.getElementById("prof").value;
+      if (!curso || !prof) return alert("Preencha todos os campos da turma!");
+      
+      sistema.criarTurma(curso, prof);
+      document.getElementById("statusTurma").innerText = `Turma '${curso}' criada com sucesso!`;
+      
+      document.getElementById("curso").value = "";
+      document.getElementById("prof").value = "";
+
+      atualizarSeletorTurmas();
+      atualizarTela();
+    }
+
+    function atualizarSeletorTurmas() {
+      const select = document.getElementById("selectTurma");
+      select.innerHTML = "";
+
+      if (sistema.turmas.length === 0) {
+        select.innerHTML = `<option value="">Nenhuma turma cadastrada</option>`;
+        return;
+      }
+
+      sistema.turmas.forEach((turma, index) => {
+        select.innerHTML += `<option value="${index}">${turma.nomeCurso} (Prof. ${turma.professor})</option>`;
+      });
+    }
+
+    function cadastrarAluno() {
+      try {
+        const indexTurma = document.getElementById("selectTurma").value;
+        if (indexTurma === "" || indexTurma === null) {
+          return alert("Selecione uma turma válida!");
+        }
+
+        const nome = document.getElementById("nomeAluno").value;
+        const mat = document.getElementById("matAluno").value;
+        const n1 = document.getElementById("n1").value;
+        const n2 = document.getElementById("n2").value;
+        const n3 = document.getElementById("n3").value;
+
+        if (!nome || !mat) return alert("Preencha nome e matrícula do aluno!");
+
+        const aluno = new Aluno(nome, mat, n1, n2, n3);
+        sistema.adicionarAlunoNaTurma(Number(indexTurma), aluno);
+        
+        document.getElementById("nomeAluno").value = "";
+        document.getElementById("matAluno").value = "";
+        document.getElementById("n1").value = "";
+        document.getElementById("n2").value = "";
+        document.getElementById("n3").value = "";
+
+        atualizarTela();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // --- Para o usuario do sistema --
+    function editarNota(turmaIndex, alunoIndex, notaNum) {
+      const novaNota = prompt(`Digite a nova Nota ${notaNum}:`);
+      if (novaNota !== null && novaNota !== "") {
+        const aluno = sistema.turmas[turmaIndex].alunos[alunoIndex];
+        if (notaNum === 1) aluno.nota1 = novaNota;
+        if (notaNum === 2) aluno.nota2 = novaNota;
+        if (notaNum === 3) aluno.nota3 = novaNota;
+        atualizarTela();
+      }
+    }
+
+    function atualizarTela() {
+      const div = document.getElementById("exibicao");
+      div.innerHTML = "";
+
+      sistema.turmas.forEach((turma, tIdx) => {
+        let html = `<h3>Curso: ${turma.nomeCurso} | Prof: ${turma.professor}</h3>`;
+        
+        if (turma.alunos.length === 0) {
+          html += `<p><em>Nenhum aluno cadastrado nesta turma.</em></p>`;
+        }
+
+        turma.alunos.forEach((aluno, aIdx) => {
+          html += `
+            <div class="aluno-item">
+              <strong>${aluno.nome}</strong> (Matrícula: ${aluno.matricula})<br>
+              Notas: N1 = ${aluno.nota1} | N2 = ${aluno.nota2} | N3 = ${aluno.nota3}<br>
+              Média: ${aluno.calcularMedia().toFixed(2)} — <strong>Situação: ${aluno.obterSituacao()}</strong><br>
+              <button onclick="editarNota(${tIdx}, ${aIdx}, 1)">Editar N1</button>
+              <button onclick="editarNota(${tIdx}, ${aIdx}, 2)">Editar N2</button>
+              <button onclick="editarNota(${tIdx}, ${aIdx}, 3)">Editar N3</button>
+            </div>
+          `;
+        });
+        div.innerHTML += html;
+      });
+    }
+  </script>
+</body>
+</html>
